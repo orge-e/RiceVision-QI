@@ -83,7 +83,7 @@ def _watershed_instances(image_rgb, mask, cfg):
         for marker in sorted(set(np.unique(markers))):
             if marker <= 1:
                 continue
-            component_mask = np.where(markers == marker, 255, 0).astype(np.uint8)
+            component_mask = (markers == marker).astype(np.uint8) * 255
             area = float(np.count_nonzero(component_mask))
             if not _area_allowed(area, cfg):
                 continue

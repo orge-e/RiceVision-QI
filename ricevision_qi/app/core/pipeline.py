@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 import numpy as np
+import cv2
 
 from ricevision_qi.app.core.classification_rules import classify_grain
 from ricevision_qi.app.core.config import merge_config
@@ -29,8 +30,11 @@ def run_detection(image_rgb, config=None):
             summary=_summary([]),
         )
 
-    binary_mask, _, _ = preprocess_image(image_rgb, cfg)
-    grains = segment_grains(image_rgb, binary_mask, cfg)
+    processing_image, scale = _processing_image(image_rgb, cfg)
+    binary_mask, _, _ = preprocess_image(processing_image, cfg)
+    grains = segment_grains(processing_image, binary_mask, cfg)
+    if scale != 1.0:
+        grains = _scale_grains_to_original(grains, scale)
     pixel_per_mm = cfg.get("pixel_per_mm")
 
     for grain in grains:
@@ -83,3 +87,32 @@ def _summary(grains):
         else:
             counts["unknown_count"] += 1
     return counts
+
+
+def _processing_image(image_rgb, cfg):
+    max_dimension = int(cfg.get("max_processing_dimension", 1800) or 0)
+    height, width = image_rgb.shape[:2]
+    largest = max(height, width)
+    if max_dimension <= 0 or largest <= max_dimension:
+        return image_rgb, 1.0
+
+    scale = max_dimension / float(largest)
+    resized = cv2.resize(
+        image_rgb,
+        (int(round(width * scale)), int(round(height * scale))),
+        interpolation=cv2.INTER_AREA,
+    )
+    return resized, scale
+
+
+def _scale_grains_to_original(grains, scale):
+    inverse = 1.0 / scale
+    for grain in grains:
+        grain.contour = np.round(grain.contour.astype(np.float32) * inverse).astype(np.int32)
+        x, y, w, h = cv2.boundingRect(grain.contour)
+        grain.bbox = (int(x), int(y), int(w), int(h))
+        grain.area_px = float(grain.area_px * inverse * inverse)
+        grain.center_x = float(grain.center_x * inverse)
+        grain.center_y = float(grain.center_y * inverse)
+        grain.mask = np.zeros((1, 1), dtype=np.uint8)
+    return grains
