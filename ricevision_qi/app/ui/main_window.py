@@ -18,8 +18,10 @@ from PySide6.QtWidgets import (
 from ricevision_qi.app.core.image_io import (
     ImageReadError,
     UnsupportedImageFormatError,
-    load_image_pixmap,
+    pixmap_from_rgb,
+    read_image,
 )
+from ricevision_qi.app.core.pipeline import run_detection
 from ricevision_qi.app.ui.image_viewer import ImageViewer
 from ricevision_qi.app.ui.result_table import ResultTable
 
@@ -47,6 +49,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(self.WINDOW_TITLE)
         self.resize(1280, 820)
         self.current_image_path: Path | None = None
+        self.current_image_rgb = None
         self.stat_labels: dict[str, QLabel] = {}
 
         self.image_viewer = ImageViewer()
@@ -133,7 +136,8 @@ class MainWindow(QMainWindow):
             return
 
         try:
-            pixmap = load_image_pixmap(Path(file_path))
+            loaded = read_image(Path(file_path))
+            pixmap = pixmap_from_rgb(loaded.image_rgb)
         except UnsupportedImageFormatError as exc:
             QMessageBox.warning(self, "Unsupported Format", str(exc))
             return
@@ -142,13 +146,29 @@ class MainWindow(QMainWindow):
             return
 
         self.current_image_path = Path(file_path)
+        self.current_image_rgb = loaded.image_rgb
         self.image_viewer.set_image(pixmap)
+        self.result_table.clear_results()
+        self._reset_stats()
 
     def start_detection(self) -> None:
-        QMessageBox.information(self, "Detection", "Detection pipeline is not implemented yet.")
+        if self.current_image_rgb is None:
+            QMessageBox.information(self, "Detection", "Please import an image first.")
+            return
+
+        try:
+            result = run_detection(self.current_image_rgb)
+        except Exception as exc:  # pragma: no cover - defensive UI boundary
+            QMessageBox.critical(self, "Detection Failed", f"Detection failed: {exc}")
+            return
+
+        self.image_viewer.set_image(pixmap_from_rgb(result.overlay_image))
+        self.result_table.set_results(result.grains)
+        self._update_stats(result.summary)
 
     def clear_results(self) -> None:
         self.current_image_path = None
+        self.current_image_rgb = None
         self.image_viewer.clear_image()
         self.result_table.clear_results()
         self._reset_stats()
@@ -158,4 +178,15 @@ class MainWindow(QMainWindow):
 
     def _reset_stats(self) -> None:
         for name, value in STAT_DEFAULTS.items():
+            self.stat_labels[name].setText(f"{name}: {value}")
+
+    def _update_stats(self, summary: dict) -> None:
+        values = {
+            "Total Grains": summary.get("total_grains", 0),
+            "Normal": summary.get("normal_count", 0),
+            "Broken": summary.get("broken_count", 0),
+            "Defective": summary.get("defective_count", 0),
+            "Impurity": summary.get("impurity_count", 0),
+        }
+        for name, value in values.items():
             self.stat_labels[name].setText(f"{name}: {value}")

@@ -16,11 +16,19 @@ class UnsupportedImageFormatError(ValueError):
     pass
 
 
+class LoadedImage:
+    def __init__(self, image_rgb: np.ndarray, path: Path) -> None:
+        self.image_rgb = image_rgb
+        self.path = path
+        self.height, self.width = image_rgb.shape[:2]
+        self.shape = image_rgb.shape
+
+
 def is_supported_image_path(path: Path) -> bool:
     return bool(path.name) and path.suffix.lower() in SUPPORTED_IMAGE_EXTENSIONS
 
 
-def read_image(path: Path) -> np.ndarray:
+def read_image(path: Path) -> LoadedImage:
     if not path or not path.name:
         raise ImageReadError("Image path is empty.")
     if not is_supported_image_path(path):
@@ -33,16 +41,24 @@ def read_image(path: Path) -> np.ndarray:
     image = cv2.imdecode(data, cv2.IMREAD_COLOR)
     if image is None:
         raise ImageReadError(f"Failed to read image: {path}")
-    return image
+    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    return LoadedImage(image_rgb=image_rgb, path=path)
 
 
 def load_image_pixmap(path: Path) -> QPixmap:
-    image_bgr = read_image(path)
-    image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
-    height, width, channels = image_rgb.shape
+    loaded = read_image(path)
+    return pixmap_from_rgb(loaded.image_rgb)
+
+
+def pixmap_from_rgb(image_rgb: np.ndarray) -> QPixmap:
+    if image_rgb is None or image_rgb.size == 0:
+        raise ImageReadError("Image data is empty.")
+
+    contiguous = np.ascontiguousarray(image_rgb)
+    height, width, channels = contiguous.shape
     bytes_per_line = channels * width
     qimage = QImage(
-        image_rgb.data,
+        contiguous.data,
         width,
         height,
         bytes_per_line,

@@ -4,3 +4,11 @@ app:
 
 detection:
   default_type: Rice Defective Kernel Inspection
+  min_grain_area: 120
+  max_grain_area: 20000
+  morph_kernel_size: 5
+  watershed_enabled: true
+  broken_length_ratio: 0.75
+  impurity_area_ratio: 0.35
+  defective_color_threshold: 34
+  pixel_per_mm: null
