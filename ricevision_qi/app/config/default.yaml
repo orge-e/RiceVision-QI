@@ -1,0 +1,6 @@
+app:
+  name: RiceVision-QI
+  window_title: "RiceVision-QI: Rice Quality Inspection System"
+
+detection:
+  default_type: Rice Defective Kernel Inspection
