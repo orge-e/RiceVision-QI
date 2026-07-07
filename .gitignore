@@ -1,0 +1,41 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+env/
+ENV/
+conda-env/
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Generated reports and processing outputs
+samples/output/*
+!samples/output/.gitkeep
+reports/
+exports/
+
+# Large local datasets
+data/
+datasets/
+samples/raw/*
+!samples/raw/.gitkeep
+
+# Model weights and experiment artifacts
+models/
+weights/
+checkpoints/
+runs/
+*.pt
+*.pth
+*.onnx
+*.engine
+*.ckpt
+*.safetensors
+
+# Standard PDF source documents
+standards_pdf/
+docs/standards/*.pdf
