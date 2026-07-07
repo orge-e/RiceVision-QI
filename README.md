@@ -1,6 +1,6 @@
 # RiceVision-QI
 
-RiceVision-QI is a desktop skeleton for a rice quality visual inspection system.
+RiceVision-QI is a vision-based rice grain quality inspection system with a PySide6 GUI and OpenCV pipeline.
 Phase 1 focuses on project structure, the PySide6 user interface, and image import/display.
 
 ## Requirements
