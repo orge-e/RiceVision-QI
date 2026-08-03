@@ -17,7 +17,12 @@ class GrainInstance:
     center_y: float
     features: dict = field(default_factory=dict)
     classification: str = "unknown"
+    predicted_class: str = "unknown"
+    manual_class: str | None = None
+    final_class: str = "unknown"
+    status: str = "valid"
     confidence: float = 0.0
+    metadata: dict = field(default_factory=dict)
 
 
 def segment_grains(image_rgb, binary_mask, config=None):
@@ -30,21 +35,20 @@ def segment_grains(image_rgb, binary_mask, config=None):
         return []
 
     if cfg.get("watershed_enabled", True):
-        instances = _watershed_instances(image_rgb, mask, cfg)
+        instances, _ = watershed_segment(image_rgb, mask, cfg)
         if instances:
-            return _renumber(instances)
+            return _renumber(filter_grain_instances(instances, cfg))
 
-    return _renumber(_connected_component_instances(mask, cfg))
+    return _renumber(filter_grain_instances(connected_components_segment(mask, cfg), cfg))
 
 
-def _connected_component_instances(mask, cfg):
+def connected_components_segment(mask, config=None):
+    cfg = merge_config(config)
     num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(mask, 8)
     instances = []
     for label in range(1, num_labels):
         area = float(stats[label, cv2.CC_STAT_AREA])
-        if not _area_allowed(area, cfg):
-            continue
-        component_mask = np.where(labels == label, 255, 0).astype(np.uint8)
+        component_mask = (labels == label).astype(np.uint8) * 255
         contour = _largest_contour(component_mask)
         if contour is None:
             continue
@@ -64,15 +68,20 @@ def _connected_component_instances(mask, cfg):
     return instances
 
 
-def _watershed_instances(image_rgb, mask, cfg):
+def watershed_segment(image_rgb, mask, config=None):
+    cfg = merge_config(config)
+    empty_markers = np.zeros(mask.shape, dtype=np.int32)
     try:
         kernel = np.ones((3, 3), np.uint8)
         sure_bg = cv2.dilate(mask, kernel, iterations=2)
         distance = cv2.distanceTransform(mask, cv2.DIST_L2, 5)
         if distance.max() <= 0:
-            return []
-        _, sure_fg = cv2.threshold(distance, 0.42 * distance.max(), 255, 0)
-        sure_fg = sure_fg.astype(np.uint8)
+            return [], empty_markers
+        ratio = float(cfg.get("watershed_dist_ratio", 0.35))
+        local_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9))
+        local_max = distance == cv2.dilate(distance, local_kernel)
+        sure_fg = np.where(local_max & (distance >= ratio * distance.max()), 255, 0).astype(np.uint8)
+        sure_fg = cv2.dilate(sure_fg, np.ones((3, 3), np.uint8), iterations=1)
         _, markers = cv2.connectedComponents(sure_fg)
         markers = markers + 1
         unknown = cv2.subtract(sure_bg, sure_fg)
@@ -85,8 +94,6 @@ def _watershed_instances(image_rgb, mask, cfg):
                 continue
             component_mask = (markers == marker).astype(np.uint8) * 255
             area = float(np.count_nonzero(component_mask))
-            if not _area_allowed(area, cfg):
-                continue
             contour = _largest_contour(component_mask)
             if contour is None:
                 continue
@@ -109,9 +116,29 @@ def _watershed_instances(image_rgb, mask, cfg):
                     center_y=float(center_y),
                 )
             )
-        return instances
+        return instances, markers.astype(np.int32)
     except cv2.error:
-        return []
+        return [], empty_markers
+
+
+def filter_grain_instances(instances, config=None):
+    cfg = merge_config(config)
+    filtered = []
+    max_area = float(cfg.get("max_area", cfg.get("max_grain_area", 100000)))
+    min_area = float(cfg.get("min_area", cfg.get("min_grain_area", 100)))
+    for instance in instances:
+        area = float(instance.area_px)
+        if area < min_area or area > max_area:
+            continue
+        rect = cv2.minAreaRect(instance.contour)
+        width, height = rect[1]
+        short = max(1.0, min(width, height))
+        long = max(width, height)
+        aspect_ratio = long / short
+        if aspect_ratio < 1.05 or aspect_ratio > 12.0:
+            continue
+        filtered.append(instance)
+    return _renumber(filtered)
 
 
 def _largest_contour(mask):
@@ -122,7 +149,9 @@ def _largest_contour(mask):
 
 
 def _area_allowed(area, cfg):
-    return float(cfg["min_grain_area"]) <= area <= float(cfg["max_grain_area"])
+    return float(cfg.get("min_area", cfg["min_grain_area"])) <= area <= float(
+        cfg.get("max_area", cfg["max_grain_area"])
+    )
 
 
 def _renumber(instances):

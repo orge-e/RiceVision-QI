@@ -10,12 +10,23 @@ CLASS_COLORS_RGB = {
     "unknown": (107, 114, 128),
 }
 
+STATUS_COLORS_RGB = {
+    "possible_split": (14, 165, 233),
+    "possible_merged": (168, 85, 247),
+    "border_artifact": (220, 38, 38),
+    "filtered_small": (148, 163, 184),
+    "filtered_large": (100, 116, 139),
+    "false_positive": (31, 41, 55),
+}
+
 
 def draw_detection_overlay(image_rgb, grains, selected_grain_id=None):
     overlay = np.ascontiguousarray(image_rgb.copy())
     overlay_bgr = cv2.cvtColor(overlay, cv2.COLOR_RGB2BGR)
     for grain in grains:
-        color_rgb = CLASS_COLORS_RGB.get(grain.classification, CLASS_COLORS_RGB["unknown"])
+        status = getattr(grain, "status", "valid")
+        final_class = getattr(grain, "final_class", getattr(grain, "classification", "unknown"))
+        color_rgb = STATUS_COLORS_RGB.get(status, CLASS_COLORS_RGB.get(final_class, CLASS_COLORS_RGB["unknown"]))
         color_bgr = tuple(reversed(color_rgb))
         is_selected = grain.id == selected_grain_id
         if is_selected:
@@ -30,6 +41,10 @@ def draw_detection_overlay(image_rgb, grains, selected_grain_id=None):
                 line_type=cv2.LINE_AA,
             )
         cv2.drawContours(overlay_bgr, [grain.contour], -1, color_bgr, 4 if is_selected else 2)
+        if status == "false_positive":
+            x, y, w, h = grain.bbox
+            cv2.line(overlay_bgr, (x, y), (x + w, y + h), color_bgr, 2, cv2.LINE_AA)
+            cv2.line(overlay_bgr, (x + w, y), (x, y + h), color_bgr, 2, cv2.LINE_AA)
         cv2.putText(
             overlay_bgr,
             str(grain.id),

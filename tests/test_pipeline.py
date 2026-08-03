@@ -8,6 +8,7 @@ def test_pipeline_blank_image_returns_zero_summary():
     assert result.summary["total_grains"] == 0
     assert result.overlay_image.shape == result.original_image.shape
     assert result.grains == []
+    assert {"original", "overlay"}.issubset(result.debug_results)
 
 
 def test_pipeline_detects_synthetic_grains_and_summary():
@@ -24,6 +25,14 @@ def test_pipeline_detects_synthetic_grains_and_summary():
         "unknown_count",
     }.issubset(result.summary)
     assert all(grain.features["length_px"] >= grain.features["width_px"] for grain in result.grains)
+    assert {
+        "original",
+        "illumination_corrected",
+        "initial_mask",
+        "cleaned_mask",
+        "watershed_markers",
+        "overlay",
+    }.issubset(result.debug_results)
 
 
 def test_pipeline_detects_bagged_grains_on_dark_background():
