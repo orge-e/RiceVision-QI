@@ -176,6 +176,33 @@ python -m app.tools.yolo_seg_evaluator --dataset "samples/eval/mendeley/rice-var
 
 The Mendeley dataset is useful for single-grain instance segmentation and counting. It does not directly represent defective kernels, impurities, chalky grains, or other rice quality categories. OpenCV remains the baseline; YOLO-seg is an optional backend for dense instance segmentation.
 
+## Real Image Validation
+
+Use the real image validator when you have acquisition images from the actual inspection setup. This workflow is for visual review, not quantitative accuracy measurement, because it does not require ground-truth masks.
+
+Put real images under:
+
+```text
+samples/real_validation/input/
+```
+
+Then run:
+
+```powershell
+conda activate RiceVision-QI
+python -m app.tools.real_image_validator --input samples/real_validation/input --output samples/output/real_validation --profiles yolo_seg_rice_v8s yolo_seg_rice_v8m --save-debug-limit 5
+```
+
+Outputs are written to a timestamped folder under `samples/output/real_validation/`:
+
+- `real_validation_results.csv`
+- `real_validation_report.md`
+- `contact_sheet_real_validation.jpg`
+- `overlays/{profile}/*_overlay.jpg`
+- optional `masks/{profile}/*.png` when `--save-masks` is used
+
+Review the contact sheet for missed grains, false positives, merged instances, split instances, and poor mask boundaries. Select 20-30 failure-heavy images for high-quality mask annotation before retraining.
+
 ## Optional YOLO-seg Backend
 
 YOLO-seg is optional. The default project still uses OpenCV. If `ultralytics` is not installed or no weights are configured, the YOLO backend returns an empty result with a status message instead of crashing. Real YOLO-seg use requires annotated data and trained weights.
