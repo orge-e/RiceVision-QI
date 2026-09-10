@@ -2,9 +2,12 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .venv/
+.venv-*/
 venv/
 env/
 ENV/
+.idea/
+.vscode/
 conda-env/
 *.egg-info/
 .mypy_cache/

@@ -24,7 +24,7 @@
 - 中间掩膜、分水岭标记和结果图调试视图
 - 参数调优、算法对比和 YOLO 分割数据评估工具
 - 单粒结果表、批次统计及人工复核入口
-- 51 项自动化测试
+- 52 项自动化测试
 
 ## 待完成能力
 
@@ -45,8 +45,11 @@ cd RiceVision-QI
 conda create -n ricevision-qi python=3.11 -y
 conda activate ricevision-qi
 python -m pip install -r requirements.txt
-python run_app.py
+python -m pip install -e .
+ricevision-qi
 ```
+
+未安装命令入口时仍可使用 `python run_app.py` 启动同一个正式界面。
 
 ## 算法验证
 
