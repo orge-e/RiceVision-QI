@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ricevision-qi"
+version = "0.2.0"
+description = "Desktop rice appearance quality inspection and evaluation toolkit"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["PySide6>=6.6", "opencv-python>=4.8", "numpy>=1.24"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+ricevision-qi = "ricevision_qi.app.main:main"
+ricevision-qi-tune = "ricevision_qi.app.tools.segmentation_tuner:main"
+ricevision-qi-evaluate = "ricevision_qi.app.tools.algorithm_evaluator:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.setuptools.packages.find]
+include = ["ricevision_qi*"]
+
+[tool.setuptools.package-data]
+"ricevision_qi.app" = ["config/*.yaml", "config/profiles/*.yaml"]
