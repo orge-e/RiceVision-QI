@@ -30,8 +30,8 @@ exports/
 /*.tiff
 
 # Large local datasets
-data/
-datasets/
+/data/
+/datasets/
 samples/raw/*
 !samples/raw/.gitkeep
 samples/eval/*
