@@ -1,0 +1,18 @@
+segmentation:
+  backend: yolo_seg
+  weights: samples/output/yolo_train/rice_grain_yolov8m_seg_100e/weights/best.pt
+  conf: 0.25
+  iou: 0.5
+  max_det: 1000
+  imgsz: 640
+
+measurement:
+  pixel_per_mm: null
+  min_aspect_ratio: 1.5
+  max_aspect_ratio: 8.0
+
+classification:
+  enable_rules: false
+
+ui:
+  default_debug_view: Overlay

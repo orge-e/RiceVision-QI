@@ -1,0 +1,18 @@
+segmentation:
+  backend: opencv_threshold
+  method: gray_otsu
+  kernel_size: 3
+  open_iter: 1
+  close_iter: 1
+  min_area: 80
+  max_area: 100000
+  watershed_dist_ratio: 0.35
+  fill_holes: true
+measurement:
+  pixel_per_mm: null
+  min_aspect_ratio: 1.5
+  max_aspect_ratio: 8.0
+classification:
+  enable_rules: true
+ui:
+  default_debug_view: Overlay

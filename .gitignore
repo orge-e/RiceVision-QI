@@ -9,8 +9,11 @@ conda-env/
 *.egg-info/
 .mypy_cache/
 .ruff_cache/
+.tmp/
 .coverage
 htmlcov/
+env_before_yolo.yml
+env_*.yml
 
 # Generated reports and processing outputs
 samples/output/*
@@ -18,11 +21,23 @@ samples/output/*
 reports/
 exports/
 
+# Ad hoc root-level image samples
+/*.jpg
+/*.jpeg
+/*.png
+/*.bmp
+/*.tif
+/*.tiff
+
 # Large local datasets
-data/
-datasets/
+/data/
+/datasets/
 samples/raw/*
 !samples/raw/.gitkeep
+samples/eval/*
+!samples/eval/.gitkeep
+samples/real_validation/input/*
+!samples/real_validation/input/.gitkeep
 
 # Model weights and experiment artifacts
 models/
